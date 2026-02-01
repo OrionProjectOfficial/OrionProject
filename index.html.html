@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orion Project | Metrostroi / Trolleybus</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@500;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* --- CORE VARIABLES --- */
+        :root {
+            --bg: #050508;
+            --primary: #f97316;
+            --primary-glow: rgba(249, 115, 22, 0.4);
+            --secondary: #3b82f6;
+            --secondary-glow: rgba(59, 130, 246, 0.4);
+            --glass: rgba(255, 255, 255, 0.02);
+            --glass-border: rgba(255, 255, 255, 0.07);
+            --glass-heavy: rgba(255, 255, 255, 0.05);
+            --text-main: #ffffff;
+            --text-dim: #94a3b8;
+            --font-head: 'Outfit', sans-serif;
+            --font-body: 'Inter', sans-serif;
+            --radius-lg: 40px;
+            --radius-md: 24px;
+        }
+
+        /* --- GLOBAL RESET & SMOOTHING --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; cursor: none; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: var(--font-body);
+            overflow-x: hidden;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        ::-webkit-scrollbar { width: 10px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: #222; border-radius: 5px; border: 2px solid var(--bg); }
+        ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+
+        /* --- BACKGROUND ENGINE --- */
+        .scene { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; background: #020205; }
+        .blob {
+            position: absolute;
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, var(--primary-glow) 0%, transparent 70%);
+            filter: blur(80px);
+            border-radius: 50%;
+            pointer-events: none;
+            opacity: 0.5;
+            transition: transform 0.2s ease-out;
+        }
+        .blob-2 { background: radial-gradient(circle, var(--secondary-glow) 0%, transparent 70%); width: 800px; height: 800px; top: 40%; left: 50%; }
+
+        /* --- REVEAL ANIMATIONS --- */
+        .reveal { opacity: 0; transform: translateY(40px); transition: all 0.8s cubic-bezier(0.2, 1, 0.3, 1); }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+
+        /* --- CURSOR SYSTEM --- */
+        #cursor {
+            width: 10px; height: 10px;
+            background: #fff;
+            border-radius: 50%;
+            position: fixed; pointer-events: none;
+            z-index: 10000; mix-blend-mode: difference;
+        }
+        #cursor-follower {
+            width: 40px; height: 40px;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            position: fixed; pointer-events: none;
+            z-index: 9999; transition: transform 0.1s ease-out, width 0.3s, height 0.3s;
+            transform: translate(-50%, -50%);
+        }
+
+        /* --- UI COMPONENTS --- */
+        .container { max-width: 1300px; margin: 0 auto; padding: 0 40px; }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #fff 40%, #64748b 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+
+        .btn-main {
+            padding: 20px 45px;
+            border-radius: 50px;
+            font-family: var(--font-head);
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border: none;
+            background: var(--primary);
+            color: white;
+            position: relative;
+            overflow: hidden;
+            transition: 0.4s;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 10px 30px var(--primary-glow);
+        }
+        .btn-main:hover { transform: translateY(-5px); box-shadow: 0 20px 40px var(--primary-glow); }
+        
+        /* --- NAVIGATION --- */
+        nav {
+            position: fixed; top: 0; width: 100%; padding: 30px 0; z-index: 1000;
+            transition: all 0.4s;
+        }
+        nav.scrolled { padding: 15px 0; background: rgba(5,5,8,0.8); backdrop-filter: blur(20px); border-bottom: 1px solid var(--glass-border); }
+        .nav-flex { display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-family: var(--font-head); font-weight: 900; font-size: 2rem; letter-spacing: -1px; }
+        .logo span { color: var(--primary); }
+        .nav-links { display: flex; gap: 40px; }
+        .nav-links a { font-family: var(--font-head); font-weight: 600; text-decoration: none; color: var(--text-dim); transition: 0.3s; font-size: 0.9rem; }
+        .nav-links a:hover { color: #fff; }
+
+        /* --- HERO SECTION --- */
+        .hero { min-height: 100vh; display: flex; align-items: center; padding-top: 100px; }
+        .hero-inner { max-width: 900px; }
+        .hero h1 { font-family: var(--font-head); font-size: clamp(3rem, 8vw, 6.5rem); font-weight: 900; line-height: 0.95; margin-bottom: 30px; letter-spacing: -3px; }
+        .hero p { font-size: 1.4rem; color: var(--text-dim); margin-bottom: 50px; max-width: 700px; }
+
+        /* --- ABOUT BLOCK --- */
+        .about-detailed { padding: 150px 0; }
+        .glass-card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: 80px;
+            backdrop-filter: blur(30px);
+            position: relative;
+            overflow: hidden;
+        }
+        .glass-card::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.03), transparent);
+            transform: translateX(-100%); transition: 0.6s;
+        }
+        .glass-card:hover::before { transform: translateX(100%); }
+        
+        .grid-info { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; margin-top: 40px; }
+        .info-item h4 { font-family: var(--font-head); font-size: 1.5rem; margin-bottom: 15px; color: var(--primary); }
+        .info-item p { color: var(--text-dim); font-size: 1.1rem; }
+
+        /* --- SERVER CARDS --- */
+        .servers-section { padding-bottom: 150px; }
+        .server-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 80px; }
+        .server-card {
+            background: var(--glass-heavy);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: 60px;
+            transition: 0.5s cubic-bezier(0.2, 1, 0.3, 1);
+            transform-style: preserve-3d;
+        }
+        .server-card:hover { border-color: rgba(255,255,255,0.2); transform: scale(1.02); }
+        .card-tag { font-family: var(--font-head); font-weight: 700; font-size: 0.8rem; background: rgba(255,255,255,0.05); padding: 5px 15px; border-radius: 20px; color: var(--text-dim); }
+        .server-card h3 { font-family: var(--font-head); font-size: 3rem; margin: 20px 0; letter-spacing: -1px; }
+
+        /* --- SOCIAL GRID --- */
+        .social-section { padding-bottom: 150px; }
+        .social-box-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+        .social-card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-md);
+            padding: 40px;
+            text-align: center;
+            transition: 0.4s;
+            text-decoration: none;
+            color: var(--text-main);
+        }
+        .social-card:hover { background: var(--glass-heavy); transform: translateY(-10px); }
+        .social-card i { font-size: 2.5rem; margin-bottom: 20px; color: var(--secondary); }
+        .social-card span { display: block; font-family: var(--font-head); font-weight: 700; font-size: 1.2rem; }
+
+        /* --- FOOTER --- */
+        footer { padding: 100px 0 50px; border-top: 1px solid var(--glass-border); text-align: center; }
+        .footer-logo { font-family: var(--font-head); font-size: 1.5rem; font-weight: 900; margin-bottom: 20px; opacity: 0.5; }
+
+        /* --- MEDIA QUERIES --- */
+        @media (max-width: 1024px) {
+            .grid-info, .server-grid { grid-template-columns: 1fr; }
+            .social-box-grid { grid-template-columns: 1fr 1fr; }
+            .hero h1 { font-size: 4rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="scene">
+        <div class="blob" id="blob1"></div>
+        <div class="blob blob-2" id="blob2"></div>
+    </div>
+
+    <div id="cursor"></div>
+    <div id="cursor-follower"></div>
+
+    <nav id="navbar">
+        <div class="container nav-flex">
+            <div class="logo hover-target">Orion<span>Project</span></div>
+            <div class="nav-links">
+                <a href="#about" class="hover-target">О нас</a>
+                <a href="#servers" class="hover-target">Серверы</a>
+                <a href="#social" class="hover-target">Сообщество</a>
+            </div>
+            <a href="#" class="btn-main hover-target" style="padding: 12px 30px; font-size: 0.8rem;">Discord</a>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <div class="container">
+            <div class="hero-inner">
+                <h1 class="reveal gradient-text">Orion<br>Project</h1>
+                <p class="reveal">Самый технологичный фан-проект в Garry's Mod. Мы превратили симуляцию метро и троллейбусов в искусство, доступное каждому.</p>
+                <div class="reveal">
+                    <a href="#servers" class="btn-main hover-target">Начать играть<i class="fa-solid fa-arrow-right"></i></a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="about" class="about-detailed">
+        <div class="container">
+            <div class="glass-card reveal">
+                <h2 class="gradient-text" style="font-family: var(--font-head); font-size: 3.5rem; margin-bottom: 30px;">Наша вселенная</h2>
+                <p style="font-size: 1.3rem; color: var(--text-dim); max-width: 800px;">Orion Project — это не просто пара игровых серверов. Это результат тысяч часов работы над оптимизацией, созданием уникальных скриптов и формированием правил, которые позволяют наслаждаться процессом без помех.</p>
+                
+                <div class="grid-info">
+                    <div class="info-item">
+                        <h4>Технологическое превосходство</h4>
+                        <p>Мы используем кастомные патчи для Metrostroi, которые снижают нагрузку на ваш ПК, сохраняя при этом максимальную детализацию физики и звука.</p>
+                    </div>
+                    <div class="info-item">
+                        <h4>Культура вождения</h4>
+                        <p>Наша школа машинистов и водителей троллейбусов считается одной из самых серьезных. Получение прав у нас — это знак качества игрока.</p>
+                    </div>
+                    <div class="info-item">
+                        <h4>Премиум Составы</h4>
+                        <p>На нашем сервере есть Вип составы такие как "81.765 Москва 2019 ,81.775 Москва 2020"</p>
+                    </div>
+                    <div class="info-item">
+                        <h4>Администрация</h4>
+                        <p>На нашем сервере есть много администрации которая следит за нарушением правил Игроками.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="servers" class="servers-section">
+        <div class="container">
+            <div class="reveal" style="text-align: center;">
+                <h2 class="gradient-text" style="font-family: var(--font-head); font-size: 4rem;">Наши Сервера</h2>
+            </div>
+
+            <div class="server-grid">
+                <div class="server-card reveal hover-target" onmousemove="tilt(event, this)" onmouseleave="resetTilt(this)">
+                    <span class="card-tag">Sandbox</span>
+                    <h3>METROSTROI</h3>
+                    <p style="color: var(--text-dim); font-size: 1.1rem; margin-bottom: 30px;">Московский метрополитен во всей красе. От управления номерными составами до контроля за диспетчерским пультом на самых сложных ветках.</p>
+                    <div style="background: rgba(0,0,0,0.3); padding: 20px; border-radius: 20px; margin-bottom: 30px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <span>Статус:</span> <span style="color: #22c55e;">Онлайн</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>IP Адрес:</span> <span>89.35.130.8:25423</span>
+                        </div>
+                    </div>
+                    <a href="steam://connect/89.35.130.8:25423" class="btn-main hover-target" style="width: 100%;">Подключиться</a>
+                </div>
+
+                <div class="server-card reveal hover-target" onmousemove="tilt(event, this)" onmouseleave="resetTilt(this)">
+                    <span class="card-tag" style="color: var(--secondary);">В разработке</span>
+                    <h3>TROLLEYBUS</h3>
+                    <p style="color: var(--text-dim); font-size: 1.1rem; margin-bottom: 30px;">Уютные улицы, переплетения проводов и мерный гул двигателя. Лучший симулятор троллейбуса с проработанными маршрутами города.</p>
+                    <div style="background: rgba(0,0,0,0.3); padding: 20px; border-radius: 20px; margin-bottom: 30px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <span>Статус:</span> <span style="color: #c52222;">Оффлайн</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>IP Адрес:</span> <span>Недоступен</span>
+                        </div>
+                    </div>
+                    <a href="steam://connect/127.0.0.1:27016" class="btn-main hover-target" style="width: 100%; background: var(--secondary); box-shadow: 0 10px 30px var(--secondary-glow);">Подключиться</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="social" class="social-section">
+        <div class="container">
+            <div class="reveal" style="margin-bottom: 60px;">
+                <h2 class="gradient-text" style="font-family: var(--font-head); font-size: 3rem;">СВЯЗЬ С НАМИ</h2>
+                <p style="color: var(--text-dim);">Присоединяйтесь к нашему огромному сообществу в социальных сетях.</p>
+            </div>
+
+            <div class="social-box-grid">
+                <a href="https://discord.gg/m6MqmBWyPs" class="social-card reveal hover-target">
+                    <i class="fa-brands fa-discord"></i>
+                    <span>Dicord</span>
+                </a>
+                <a href="#" class="social-card reveal hover-target">
+                    <i class="fa-brands fa-tiktok"></i>
+                    <span>TikTok</span>
+                </a>
+                <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3600774334" class="social-card reveal hover-target">
+                    <i class="fa-brands fa-steam"></i>
+                    <span>Коллеция сервера</span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <div class="footer-logo">Orion Project</div>
+            <p style="color: #444; font-size: 0.9rem;">Orion Project - Игровые Сервера</p>
+            <div style="margin-top: 30px; font-size: 0.7rem; color: #333; letter-spacing: 2px; text-transform: uppercase;">
+                Лучшие игровые сервера
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // 1. CURSOR ENGINE
+        const cursor = document.getElementById('cursor');
+        const follower = document.getElementById('cursor-follower');
+        const hoverables = document.querySelectorAll('.hover-target');
+
+        document.addEventListener('mousemove', (e) => {
+            cursor.style.left = e.clientX + 'px';
+            cursor.style.top = e.clientY + 'px';
+            
+            follower.animate({
+                left: e.clientX + 'px',
+                top: e.clientY + 'px'
+            }, { duration: 400, fill: "forwards" });
+        });
+
+        hoverables.forEach(el => {
+            el.addEventListener('mouseenter', () => {
+                follower.style.width = '70px';
+                follower.style.height = '70px';
+                follower.style.background = 'rgba(255,255,255,0.05)';
+            });
+            el.addEventListener('mouseleave', () => {
+                follower.style.width = '40px';
+                follower.style.height = '40px';
+                follower.style.background = 'transparent';
+            });
+        });
+
+        // 2. SCROLL REVEAL ENGINE
+        const observerOptions = { threshold: 0.1 };
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+        // 3. AMBIENT ENGINE (BLOBS)
+        document.addEventListener('mousemove', (e) => {
+            const moveX = (e.clientX - window.innerWidth / 2) * 0.05;
+            const moveY = (e.clientY - window.innerHeight / 2) * 0.05;
+            
+            document.getElementById('blob1').style.transform = `translate(${moveX}px, ${moveY}px)`;
+            document.getElementById('blob2').style.transform = `translate(${-moveX}px, ${-moveY}px)`;
+        });
+
+        // 4. NAV SCROLL EFFECT
+        window.addEventListener('scroll', () => {
+            const nav = document.getElementById('navbar');
+            if (window.scrollY > 50) nav.classList.add('scrolled');
+            else nav.classList.remove('scrolled');
+        });
+
+        // 5. TILT ENGINE
+        function tilt(e, card) {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            
+            const rotateX = (y - centerY) / 20;
+            const rotateY = (centerX - x) / 20;
+            
+            card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.02)`;
+        }
+
+        function resetTilt(card) {
+            card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1)`;
+        }
+    </script>
+</body>
+</html>
